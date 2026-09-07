@@ -24,6 +24,6 @@ jobs:
 
       - name: Run Alert Bot
         env:
-          TELEGRAM_TOKEN: ${{ secrets.8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s }}
-          TELEGRAM_CHAT_ID: ${{ secrets.-1004433036270 }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_ID }}
         run: python food_alert_bot.py
