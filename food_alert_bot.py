@@ -3,8 +3,8 @@ import requests
 import feedparser
 
 # Tetapan Telegram (Guna Environment Variables untuk keselamatan)
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_TOKEN = os.getenv("8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s")
+TELEGRAM_CHAT_ID = os.getenv("-1004433036270")
 
 # Senarai Sumber Feed Alert Antarabangsa
 FEEDS = {
