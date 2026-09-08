@@ -9,12 +9,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Tajuk & Penerangan
 st.title("🛡️ Pusat Risikan Makanan & Food Search (Import)")
 st.caption("Aplikasi Pemantauan OSINT & Semakan Food Alert Antarabangsa untuk Cawangan Import PKKM")
 
 # Fungsi Ambil Data RSS Feed Antarabangsa
-@st.cache_data(ttl=1800) # Simpan data dalam memori selama 30 minit
+@st.cache_data(ttl=1800)
 def load_food_alerts():
     feeds = {
         "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml"
@@ -23,16 +22,23 @@ def load_food_alerts():
     alert_list = []
     
     for source, url in feeds.items():
-        parsed = feedparser.parse(url)
-        for entry in parsed.entries:
-            alert_list.append({
-                "Sumber": source,
-                "Tajuk / Produk": entry.title,
-                "Tarikh": getattr(entry, 'published', 'Tiada Tarikh'),
-                "Pautan Laporan": entry.link,
-                "Ringkasan": getattr(entry, 'summary', 'Tiada Ringkasan')
-            })
+        try:
+            parsed = feedparser.parse(url)
+            for entry in parsed.entries:
+                alert_list.append({
+                    "Sumber": source,
+                    "Tajuk / Produk": getattr(entry, 'title', 'Tiada Tajuk'),
+                    "Tarikh": getattr(entry, 'published', 'Tiada Tarikh'),
+                    "Pautan Laporan": getattr(entry, 'link', '#'),
+                    "Ringkasan": getattr(entry, 'summary', 'Tiada Ringkasan')
+                })
+        except Exception as e:
+            st.error(f"Ralat menarik data dari {source}: {e}")
             
+    # Jika tiada data, bina DataFrame dengan nama lajur yang ditetapkan
+    if not alert_list:
+        return pd.DataFrame(columns=["Sumber", "Tajuk / Produk", "Tarikh", "Pautan Laporan", "Ringkasan"])
+        
     return pd.DataFrame(alert_list)
 
 # Memuat naik data
@@ -53,7 +59,7 @@ st.subheader("🔍 Carian Risikan Makanan (Food Search)")
 query = st.text_input("Masukkan nama produk, ramuan (cth: Salmonella, Ethylene Oxide), atau pengilang:", "")
 
 # Tapis Data Mengikut Carian
-if query:
+if query and not df_alerts.empty:
     filtered_df = df_alerts[
         df_alerts['Tajuk / Produk'].str.contains(query, case=False, na=False) |
         df_alerts['Ringkasan'].str.contains(query, case=False, na=False)
@@ -61,26 +67,31 @@ if query:
 else:
     filtered_df = df_alerts
 
-# Paparan Hasil Carian
 st.write(f"Menunjukkan **{len(filtered_df)}** rekod hasil carian:")
 
-# Guna data editor / table Streamlit
-st.dataframe(
-    filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh', 'Pautan Laporan']],
-    use_container_width=True,
-    column_config={
-        "Pautan Laporan": st.column_config.LinkColumn("Pautan Laporan Lanjut")
-    }
-)
+# Paparkan jadual hanya jika DataFrame tidak kosong
+if not filtered_df.empty:
+    st.dataframe(
+        filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh', 'Pautan Laporan']],
+        use_container_width=True,
+        column_config={
+            "Pautan Laporan": st.column_config.LinkColumn("Pautan Laporan Lanjut")
+        }
+    )
+else:
+    st.info("Tiada rekod amaran makanan ditemui buat masa ini.")
 
-# BAHAGIAN 3: EKSPORT DATA UNTUK DOSIER RISIKAN / FOSIM
+# BAHAGIAN 3: EKSPORT DATA
 st.divider()
 st.subheader("📥 Muat Turun Data Risikan")
 
-csv_data = filtered_df.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="📄 Muat Turun Laporan Risikan (CSV)",
-    data=csv_data,
-    file_name="laporan_risikan_import_food_alert.csv",
-    mime="text/csv"
-)
+if not filtered_df.empty:
+    csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📄 Muat Turun Laporan Risikan (CSV)",
+        data=csv_data,
+        file_name="laporan_risikan_import_food_alert.csv",
+        mime="text/csv"
+    )
+else:
+    st.warning("Tiada data untuk dimuat turun.")
