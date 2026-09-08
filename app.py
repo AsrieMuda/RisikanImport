@@ -25,11 +25,14 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Fungsi Ambil Data RSS Feed Antarabangsa
+# Fungsi Ambil Data Multi-Source RSS Feed Antarabangsa
 @st.cache_data(ttl=1800)
 def load_food_alerts():
     feeds = {
-        "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml"
+        "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml",
+        "UK Food Standards Agency (FSA)": "https://www.food.gov.uk/rss/news-and-alerts/alerts/rss.xml",
+        "EU RASFF / Safety News": "https://www.foodsafetynews.com/tag/rasff/feed/",
+        "Singapore SFA / Food Alerts": "https://www.foodsafetynews.com/tag/singapore-food-agency/feed/"
     }
     
     alert_list = []
@@ -37,16 +40,16 @@ def load_food_alerts():
     for source, url in feeds.items():
         try:
             parsed = feedparser.parse(url)
-            for entry in parsed.entries:
+            for entry in parsed.entries[:10]: # Ambil 10 teratas bagi setiap sumber
                 alert_list.append({
                     "Sumber": source,
                     "Tajuk / Produk": getattr(entry, 'title', 'Tiada Tajuk'),
-                    "Tarikh": getattr(entry, 'published', 'Tiada Tarikh'),
+                    "Tarikh": getattr(entry, 'published', getattr(entry, 'updated', 'Tiada Tarikh')),
                     "Pautan Laporan": getattr(entry, 'link', '#'),
                     "Ringkasan": getattr(entry, 'summary', 'Tiada Ringkasan')
                 })
         except Exception as e:
-            st.error(f"Ralat menarik data dari {source}: {e}")
+            st.warning(f"Gagal menarik data dari {source}: {e}")
             
     if not alert_list:
         return pd.DataFrame(columns=["Sumber", "Tajuk / Produk", "Tarikh", "Pautan Laporan", "Ringkasan"])
@@ -54,30 +57,41 @@ def load_food_alerts():
     return pd.DataFrame(alert_list)
 
 # Memuat naik data
-with st.spinner("Menarik data amaran makanan antarabangsa terkini..."):
+with st.spinner("Menarik data amaran makanan antarabangsa dari pelbagai portal global..."):
     df_alerts = load_food_alerts()
 
 # BAHAGIAN 1: METRIK SUMMARY
 st.divider()
 col1, col2, col3 = st.columns(3)
 col1.metric("Jumlah Alert Dikesan", len(df_alerts))
-col2.metric("Sumber Monitor Utama", "US FDA & EU RASFF")
-col3.metric("Status Integrasi", "Aktif (Auto-Sync)")
+col2.metric("Sumber Monitor Utama", "US FDA, UK FSA, EU RASFF & SFA")
+col3.metric("Status Integrasi", "Aktif (Multi-Source Sync)")
 
 st.divider()
 
-# BAHAGIAN 2: FOOD SEARCH ENGINE
-st.subheader("🔍 Carian Risikan Makanan (Food Search)")
-query = st.text_input("Masukkan nama produk, ramuan (cth: Salmonella, Ethylene Oxide), atau pengilang:", "")
+# BAHAGIAN 2: FOOD SEARCH ENGINE & PENAPIS SUMBER
+st.subheader("🔍 Carian Risikan Makanan Bersepadu (Food Search)")
 
-# Tapis Data Mengikut Carian
-if query and not df_alerts.empty:
-    filtered_df = df_alerts[
-        df_alerts['Tajuk / Produk'].str.contains(query, case=False, na=False) |
-        df_alerts['Ringkasan'].str.contains(query, case=False, na=False)
+col_search, col_filter = st.columns([3, 1])
+
+with col_filter:
+    sumber_list = ["Semua Sumber"] + list(df_alerts['Sumber'].unique()) if not df_alerts.empty else ["Semua Sumber"]
+    selected_source = st.selectbox("Tapis Mengikut Sumber:", sumber_list)
+
+with col_search:
+    query = st.text_input("Masukkan nama produk, ramuan (cth: Salmonella, Ethylene Oxide), atau pengilang:", "")
+
+# Proses Penapisan Data
+filtered_df = df_alerts.copy()
+
+if selected_source != "Semua Sumber":
+    filtered_df = filtered_df[filtered_df['Sumber'] == selected_source]
+
+if query and not filtered_df.empty:
+    filtered_df = filtered_df[
+        filtered_df['Tajuk / Produk'].str.contains(query, case=False, na=False) |
+        filtered_df['Ringkasan'].str.contains(query, case=False, na=False)
     ]
-else:
-    filtered_df = df_alerts
 
 st.write(f"Menunjukkan **{len(filtered_df)}** rekod hasil carian:")
 
@@ -90,7 +104,7 @@ if not filtered_df.empty:
         }
     )
 else:
-    st.info("Tiada rekod amaran makanan ditemui buat masa ini.")
+    st.info("Tiada rekod amaran makanan ditemui mengikut kriteria carian anda.")
 
 # BAHAGIAN 3: EKSPORT DATA
 st.divider()
@@ -104,5 +118,3 @@ if not filtered_df.empty:
         file_name="laporan_risikan_import_food_alert.csv",
         mime="text/csv"
     )
-else:
-    st.warning("Tiada data untuk dimuat turun.")
