@@ -6,11 +6,16 @@ import feedparser
 TELEGRAM_TOKEN = os.getenv("8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s")
 TELEGRAM_CHAT_ID = os.getenv("-1004433036270")
 
+# CARA 2: Jika Secrets masih bermasalah, padam 2 baris di atas dan buang tanda '#' di 2 baris bawah ini:
+# TELEGRAM_TOKEN = "8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s"
+# TELEGRAM_CHAT_ID = "-1004433036270"
+
 # Senarai RSS Feed
 FEEDS = {
     "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml",
 }
 
+# Kata kunci berisiko tinggi (Koma ditambah untuk elak SyntaxError)
 RISK_KEYWORDS = [
     "aflatoxin", "salmonella", "listeria", "ethylene oxide", 
     "undeclared", "allergen", "unregistered", "prohibited"
@@ -24,15 +29,14 @@ def send_telegram_alert(message):
         "parse_mode": "Markdown",
         "disable_web_page_preview": True
     }
-    requests.post(url, json=payload)
+    res = requests.post(url, json=payload)
+    print("Status Telegram:", res.status_code, res.text)  # Untuk semak log di GitHub Actions
 
 def check_food_alerts():
     total_alerts_found = 0
     
     for source_name, feed_url in FEEDS.items():
         feed = feedparser.parse(feed_url)
-        
-        # Ambil 3 entri terkini
         entries = feed.entries[:3] if feed.entries else []
         
         for entry in entries:
@@ -53,7 +57,7 @@ def check_food_alerts():
             )
             send_telegram_alert(message)
 
-    # JIKA TIADA DATA BARU / RSS KOSONG, HANTAR STATUS MONITORING
+    # Jika tiada isu baharu atau RSS kosong
     if total_alerts_found == 0:
         send_telegram_alert("✅ *STATUS RISIKAN:* Imbasan selesai. Tiada amaran makanan (Food Alert) baharu dikesan buat masa ini.")
 
