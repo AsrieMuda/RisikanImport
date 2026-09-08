@@ -2,9 +2,20 @@ import os
 import requests
 import feedparser
 
-# Tetapkan Token & Chat ID terus (Hardcoded) untuk mengelakkan ralat getenv
 TELEGRAM_TOKEN = "8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s"
 TELEGRAM_CHAT_ID = "-1004433036270"
+
+FEEDS = {
+    "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml",
+    "UK Food Standards Agency": "https://www.food.gov.uk/rss/news-and-alerts/alerts/rss.xml",
+    "EU RASFF News": "https://www.foodsafetynews.com/tag/rasff/feed/",
+    "Singapore SFA Alerts": "https://www.foodsafetynews.com/tag/singapore-food-agency/feed/"
+}
+
+RISK_KEYWORDS = [
+    "aflatoxin", "salmonella", "listeria", "ethylene oxide", 
+    "undeclared", "allergen", "unregistered", "prohibited", "recall"
+]
 
 def send_telegram_alert(message):
     try:
@@ -15,35 +26,40 @@ def send_telegram_alert(message):
             "parse_mode": "Markdown",
             "disable_web_page_preview": True
         }
-        res = requests.post(url, json=payload, timeout=10)
-        print(f"Status Telegram: {res.status_code} - {res.text}")
+        requests.post(url, json=payload, timeout=10)
     except Exception as e:
-        print(f"Ralat Penghantaran Telegram: {e}")
+        print(f"Ralat Telegram: {e}")
 
 def check_food_alerts():
-    print("Mula menjalankan imbasan Food Alert...")
+    total_alerts_found = 0
     
-    # 1. Hantar mesej pengesahan sistem aktif
-    send_telegram_alert("🚨 *UJIAN INTEGRASI OSINT IMPORT*\n\nSistem pemantauan Food Alert dihubungkan secara terus.")
+    for source_name, feed_url in FEEDS.items():
+        try:
+            feed = feedparser.parse(feed_url)
+            entries = feed.entries[:2] if feed.entries else [] # Ambil 2 entri terkini setiap sumber
+            
+            for entry in entries:
+                total_alerts_found += 1
+                title = getattr(entry, 'title', 'Tiada Tajuk')
+                link = getattr(entry, 'link', '#')
+                summary = getattr(entry, 'summary', '')
 
-    # 2. Tarik data dari RSS US FDA
-    feed_url = "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml"
-    
-    try:
-        feed = feedparser.parse(feed_url)
-        if feed.entries:
-            for entry in feed.entries[:2]:
-                msg = (
-                    f"ℹ️ *INFO ALERT IMPORT (US FDA)*\n\n"
-                    f"*Tajuk:* {entry.title}\n"
-                    f"*Pautan:* [Buka Laporan]({entry.link})\n\n"
+                is_high_risk = any(keyword.lower() in (title + summary).lower() for keyword in RISK_KEYWORDS)
+                risk_tag = "🚨 *ALERT BERISIKO TINGGI*" if is_high_risk else "ℹ️ *INFO ALERT IMPORT*"
+                
+                message = (
+                    f"{risk_tag}\n\n"
+                    f"*Sumber:* {source_name}\n"
+                    f"*Tajuk:* {title}\n\n"
+                    f"*Pautan:* [Buka Laporan]({link})\n\n"
                     f"📌 _Tindakan Risikan: Semak rekod kemasukan di FoSIM Import._"
                 )
-                send_telegram_alert(msg)
-        else:
-            send_telegram_alert("✅ *STATUS RISIKAN:* Imbasan RSS selesai, tiada rekod baharu.")
-    except Exception as e:
-        print(f"Ralat membaca RSS Feed: {e}")
+                send_telegram_alert(message)
+        except Exception as e:
+            print(f"Ralat menarik data {source_name}: {e}")
+
+    if total_alerts_found == 0:
+        send_telegram_alert("✅ *STATUS RISIKAN:* Imbasan selesai. Tiada amaran baharu dikesan.")
 
 if __name__ == "__main__":
     check_food_alerts()
