@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import feedparser
 from PIL import Image
-import pytesseract
 
 # Tetapan Muka Surat
 st.set_page_config(
@@ -12,18 +11,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# STYLESHEET KHAS: REKA BENTUK TEMA PORTAL RASMI BKKM / KKM
+# STYLESHEET REKA BENTUK PORTAL RASMI BKKM
 st.markdown("""
     <style>
-        /* Tetapan Asas & Ruang */
         .block-container {
             padding-top: 0.5rem !important;
             padding-bottom: 1.5rem !important;
             padding-left: 0.8rem !important;
             padding-right: 0.8rem !important;
         }
-        
-        /* Utility Bar Atas (Hitam/Kelabu Gelap) */
         .top-utility-bar {
             background-color: #2c3036;
             color: #ffffff;
@@ -34,8 +30,6 @@ st.markdown("""
             align-items: center;
             border-radius: 4px 4px 0 0;
         }
-
-        /* Header Utama BKKM (Latar Putih) */
         .bkkm-header {
             background-color: #ffffff;
             padding: 15px;
@@ -46,107 +40,40 @@ st.markdown("""
             border-right: 1px solid #e0e0e0;
             box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
         }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .jata-img {
-            width: 75px;
-            margin-right: 15px;
-        }
-
-        .header-text-sub {
-            font-size: 11px;
-            color: #555;
-            margin: 0;
-            font-weight: 500;
-        }
-
-        .header-text-main {
-            font-size: 16px;
-            color: #111;
-            margin: 2px 0;
-            font-weight: 800;
-            font-family: sans-serif;
-            letter-spacing: -0.3px;
-        }
-
-        .header-text-kkm {
-            font-size: 12px;
-            color: #003B5C;
-            margin: 0;
-            font-weight: 700;
-        }
-
-        /* Ikon Pautan Pantas Sebelah Kanan (FoSIM style) */
-        .header-right-icons {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .icon-box {
-            text-align: center;
-            font-size: 10px;
-            color: #003B5C;
-            font-weight: bold;
-            text-decoration: none;
-        }
-
-        /* Navigation Bar Biru Gelap Portal BKKM */
+        .header-left { display: flex; align-items: center; }
+        .jata-img { width: 75px; margin-right: 15px; }
+        .header-text-sub { font-size: 11px; color: #555; margin: 0; font-weight: 500; }
+        .header-text-main { font-size: 16px; color: #111; margin: 2px 0; font-weight: 800; font-family: sans-serif; }
+        .header-text-kkm { font-size: 12px; color: #003B5C; margin: 0; font-weight: 700; }
+        .header-right-icons { display: flex; gap: 12px; align-items: center; }
+        .icon-box { text-align: center; font-size: 10px; color: #003B5C; font-weight: bold; }
         .stTabs [data-baseweb="tab-list"] {
             background-color: #003B5C !important;
             padding: 2px 10px !important;
             border-radius: 0 0 4px 4px !important;
             gap: 5px;
         }
-
-        .stTabs [data-baseweb="tab"] {
-            color: #ffffff !important;
-            font-weight: 600 !important;
-            font-size: 13px !important;
-            padding: 10px 16px !important;
-            border: none !important;
-        }
-
-        .stTabs [aria-selected="true"] {
-            background-color: #005689 !important;
-            border-bottom: 3px solid #ffcc00 !important;
-        }
-
-        /* Responsive Mobile Adjustment */
+        .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: 600 !important; font-size: 13px !important; }
+        .stTabs [aria-selected="true"] { background-color: #005689 !important; border-bottom: 3px solid #ffcc00 !important; }
         @media (max-width: 640px) {
-            .bkkm-header {
-                flex-direction: column;
-                text-align: center;
-            }
-            .header-left {
-                flex-direction: column;
-            }
-            .jata-img {
-                margin-right: 0;
-                margin-bottom: 8px;
-                width: 60px;
-            }
-            .header-right-icons {
-                margin-top: 10px;
-            }
+            .bkkm-header { flex-direction: column; text-align: center; }
+            .header-left { flex-direction: column; }
+            .jata-img { margin-right: 0; margin-bottom: 8px; width: 60px; }
+            .header-right-icons { margin-top: 10px; }
             .header-text-main { font-size: 14px; }
         }
     </style>
 """, unsafe_allow_html=True)
 
-# 1. TOP UTILITY BAR (Gaya Portal Rasmi KKM)
+# 1. TOP UTILITY BAR
 st.markdown("""
     <div class="top-utility-bar">
-        <span> Portal Rasmi Unit Risikan Import PKKM</span>
-        <span> Bahasa: <b>MY 🇲🇾</b> | EN 🇬🇧</span>
+        <span>Portal Rasmi Unit Risikan Import PKKM</span>
+        <span>Bahasa: <b>MY 🇲🇾</b> | EN 🇬🇧</span>
     </div>
 """, unsafe_allow_html=True)
 
-# 2. HEADER UTAMA BKKM
+# 2. HEADER BKKM
 st.markdown("""
     <div class="bkkm-header">
         <div class="header-left">
@@ -165,7 +92,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. NAVIGASI TAB (Gaya Menu Biru BKKM)
+# 3. NAVIGASI TAB
 tab1, tab2, tab3 = st.tabs([
     "🏠 UTAMA (Food Search)", 
     "📲 RISIKAN VIRAL", 
@@ -196,7 +123,7 @@ with tab1:
                         "Pautan Laporan": getattr(entry, 'link', '#'),
                         "Ringkasan": getattr(entry, 'summary', 'Tiada Ringkasan')
                     })
-            except Exception as e:
+            except Exception:
                 pass
         return pd.DataFrame(alert_list) if alert_list else pd.DataFrame(columns=["Sumber", "Tajuk / Produk", "Tarikh", "Pautan Laporan", "Ringkasan"])
 
@@ -223,11 +150,7 @@ with tab1:
     st.caption(f"Menunjukkan **{len(filtered_df)}** rekod maklumat dikesan:")
 
     if not filtered_df.empty:
-        st.dataframe(
-            filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh']], 
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh']], use_container_width=True, hide_index=True)
         csv_data = filtered_df.to_csv(index=False).encode('utf-8')
         st.download_button("📄 Muat Turun Laporan Risikan (CSV)", data=csv_data, file_name="laporan_risikan_bkkm.csv", mime="text/csv", use_container_width=True)
     else:
@@ -255,11 +178,11 @@ with tab2:
     st.dataframe(df_viral[['Nama Produk', 'Platform', 'Status Risk']], use_container_width=True, hide_index=True)
 
 # ==========================================
-# TAB 3: IMBASAN LABEL IMAGE (OCR AI)
+# TAB 3: IMBASAN LABEL IMAGE
 # ==========================================
 with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("📷 Imbasan Teks Label & Ramuan (OCR)")
+    st.subheader("📷 Semakan Manual Teks Ramuan Label")
     
     uploaded_file = st.file_uploader("Muat Naik Gambar Label Produk:", type=["png", "jpg", "jpeg"])
     
@@ -267,17 +190,14 @@ with tab3:
         image = Image.open(uploaded_file)
         st.image(image, caption="Gambar Label Diimbas", use_container_width=True)
         
-        with st.spinner("Pengecam OCR sedang mengekstrak teks ramuan..."):
-            try:
-                extracted_text = pytesseract.image_to_string(image)
-                st.text_area("Hasil Teks Dikesan:", extracted_text, height=120)
-                
-                risk_keywords = ["sibutramine", "sildenafil", "steroid", "rhodamine", "aflatoxin"]
-                found_risks = [word for word in risk_keywords if word.lower() in extracted_text.lower()]
-                
-                if found_risks:
-                    st.error(f"🚨 **AMARAN:** Bahan Berisiko Dikesan: {', '.join(found_risks)}")
-                else:
-                    st.success("✅ Tiada bahan berisiko utama dikesan.")
-            except Exception:
-                st.info("Modul OCR memerlukan enjin Tesseract dipasang.")
+        st.info("📌 Modul Semakan Teks Ramuan:")
+        manual_text = st.text_area("Masukkan/Tampal teks ramuan pada label untuk semakan automatik bahan terlarang:", height=100)
+        
+        if manual_text:
+            risk_keywords = ["sibutramine", "sildenafil", "steroid", "rhodamine", "aflatoxin", "ethylene oxide"]
+            found_risks = [word for word in risk_keywords if word.lower() in manual_text.lower()]
+            
+            if found_risks:
+                st.error(f"🚨 **AMARAN:** Bahan Berisiko Dikesan: {', '.join(found_risks)}")
+            else:
+                st.success("✅ Tiada bahan terlarang utama dikesan di dalam teks ramuan ini.")
