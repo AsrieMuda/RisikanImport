@@ -4,84 +4,172 @@ import feedparser
 from PIL import Image
 import pytesseract
 
-# Tetapan Muka Surat - Gunakan 'centered' untuk kesesuaian mobile
+# Tetapan Muka Surat
 st.set_page_config(
-    page_title="Pusat Risikan PKKM",
+    page_title="Pusat Risikan Import PKKM",
     page_icon="🇲🇾",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# STYLESHEET KHAS UNTUK MOBILITY & RESPONSIVE DESIGN
+# STYLESHEET KHAS: REKA BENTUK TEMA PORTAL RASMI BKKM / KKM
 st.markdown("""
     <style>
-        /* Mengurangkan ruang kosong atas di skrin telefon */
+        /* Tetapan Asas & Ruang */
         .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1rem !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 1.5rem !important;
             padding-left: 0.8rem !important;
             padding-right: 0.8rem !important;
         }
         
-        /* Header Responsive */
-        .header-box {
+        /* Utility Bar Atas (Hitam/Kelabu Gelap) */
+        .top-utility-bar {
+            background-color: #2c3036;
+            color: #ffffff;
+            padding: 5px 15px;
+            font-size: 11px;
             display: flex;
-            flex-direction: row;
+            justify-content: space-between;
             align-items: center;
-            background-color: #f8f9fa;
-            padding: 12px;
-            border-radius: 8px;
-            border-bottom: 4px solid #003366;
-            margin-bottom: 15px;
+            border-radius: 4px 4px 0 0;
         }
-        
-        .header-img {
-            width: 65px;
-            margin-right: 12px;
-        }
-        
-        .header-title-1 { font-size: 11px; color: #003366; font-weight: bold; margin:0; }
-        .header-title-2 { font-size: 14px; color: #111; font-weight: 800; margin: 2px 0; }
-        .header-title-3 { font-size: 11px; color: #555; font-weight: 600; margin:0; }
-        .header-address { font-size: 10px; color: #666; margin-top: 4px; margin-bottom:0; line-height: 1.2; }
 
-        /* Khusus untuk skrin kecil / Mobile View */
+        /* Header Utama BKKM (Latar Putih) */
+        .bkkm-header {
+            background-color: #ffffff;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .jata-img {
+            width: 75px;
+            margin-right: 15px;
+        }
+
+        .header-text-sub {
+            font-size: 11px;
+            color: #555;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .header-text-main {
+            font-size: 16px;
+            color: #111;
+            margin: 2px 0;
+            font-weight: 800;
+            font-family: sans-serif;
+            letter-spacing: -0.3px;
+        }
+
+        .header-text-kkm {
+            font-size: 12px;
+            color: #003B5C;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        /* Ikon Pautan Pantas Sebelah Kanan (FoSIM style) */
+        .header-right-icons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .icon-box {
+            text-align: center;
+            font-size: 10px;
+            color: #003B5C;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        /* Navigation Bar Biru Gelap Portal BKKM */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: #003B5C !important;
+            padding: 2px 10px !important;
+            border-radius: 0 0 4px 4px !important;
+            gap: 5px;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            font-size: 13px !important;
+            padding: 10px 16px !important;
+            border: none !important;
+        }
+
+        .stTabs [aria-selected="true"] {
+            background-color: #005689 !important;
+            border-bottom: 3px solid #ffcc00 !important;
+        }
+
+        /* Responsive Mobile Adjustment */
         @media (max-width: 640px) {
-            .header-box {
+            .bkkm-header {
                 flex-direction: column;
                 text-align: center;
             }
-            .header-img {
-                width: 55px;
+            .header-left {
+                flex-direction: column;
+            }
+            .jata-img {
                 margin-right: 0;
                 margin-bottom: 8px;
+                width: 60px;
             }
-            .header-title-2 { font-size: 13px; }
+            .header-right-icons {
+                margin-top: 10px;
+            }
+            .header-text-main { font-size: 14px; }
         }
     </style>
 """, unsafe_allow_html=True)
 
-# HEADER RASMI KERAJAAN MALAYSIA / KKM (MOBILE OPTIMIZED)
+# 1. TOP UTILITY BAR (Gaya Portal Rasmi KKM)
 st.markdown("""
-    <div class="header-box">
-        <img class="header-img" src="https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_Malaysia.svg">
-        <div>
-            <h4 class="header-title-1">KEMENTERIAN KESIHATAN MALAYSIA</h4>
-            <h2 class="header-title-2">PROGRAM KESELAMATAN DAN KUALITI MAKANAN</h2>
-            <h5 class="header-title-3">CAWANGAN IMPORT | UNIT RISIKAN</h5>
-            <p class="header-address">
-                📍 Aras 4, Menara Prisma, Presint 3, Putrajaya.<br>
-                💻 <b>SISTEM RISIKAN IMPORT (OSINT)</b>
-            </p>
+    <div class="top-utility-bar">
+        <span> Portal Rasmi Unit Risikan Import PKKM</span>
+        <span> Bahasa: <b>MY 🇲🇾</b> | EN 🇬🇧</span>
+    </div>
+""", unsafe_allow_html=True)
+
+# 2. HEADER UTAMA BKKM
+st.markdown("""
+    <div class="bkkm-header">
+        <div class="header-left">
+            <img class="jata-img" src="https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_Malaysia.svg">
+            <div>
+                <p class="header-text-sub">Laman Web Rasmi OSINT Risikan</p>
+                <h2 class="header-text-main">PROGRAM KESELAMATAN DAN KUALITI MAKANAN</h2>
+                <p class="header-text-kkm">KEMENTERIAN KESIHATAN MALAYSIA</p>
+            </div>
+        </div>
+        <div class="header-right-icons">
+            <div class="icon-box">🚢<br>FoSIM Import</div>
+            <div class="icon-box">📋<br>Perundangan</div>
+            <div class="icon-box">🛡️<br>Risikan</div>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# NAVIGASI TAB UTAMA
+# 3. NAVIGASI TAB (Gaya Menu Biru BKKM)
 tab1, tab2, tab3 = st.tabs([
-    "🔍 Food Search", 
-    "📲 Produk Viral", 
-    "📷 OCR Label"
+    "🏠 UTAMA (Food Search)", 
+    "📲 RISIKAN VIRAL", 
+    "📷 OCR LABEL AI"
 ])
 
 # ==========================================
@@ -114,14 +202,14 @@ with tab1:
 
     df_alerts = load_food_alerts()
 
-    # Metrics paparan menegak mesra mobile
-    st.metric("Jumlah Alert Dikesan", len(df_alerts))
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.metric("Jumlah Rekod Alert Aktif", len(df_alerts))
 
-    st.subheader("🔍 Carian Risikan Makanan")
+    st.subheader("🔍 Carian Risikan Makanan Import")
     
     sumber_list = ["Semua Sumber"] + list(df_alerts['Sumber'].unique()) if not df_alerts.empty else ["Semua Sumber"]
-    selected_source = st.selectbox("Tapis Sumber:", sumber_list)
-    query = st.text_input("Carian (cth: Salmonella, Kopi, Brand):", "")
+    selected_source = st.selectbox("Tapis Portal Sumber:", sumber_list)
+    query = st.text_input("Kata Kunci Carian (cth: Salmonella, Kopi, Brand):", "")
 
     filtered_df = df_alerts.copy()
     if selected_source != "Semua Sumber":
@@ -132,7 +220,7 @@ with tab1:
             filtered_df['Ringkasan'].str.contains(query, case=False, na=False)
         ]
 
-    st.caption(f"Menunjukkan **{len(filtered_df)}** rekod hasil carian:")
+    st.caption(f"Menunjukkan **{len(filtered_df)}** rekod maklumat dikesan:")
 
     if not filtered_df.empty:
         st.dataframe(
@@ -141,15 +229,16 @@ with tab1:
             hide_index=True
         )
         csv_data = filtered_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📄 Muat Turun Laporan (CSV)", data=csv_data, file_name="laporan_risikan.csv", mime="text/csv", use_container_width=True)
+        st.download_button("📄 Muat Turun Laporan Risikan (CSV)", data=csv_data, file_name="laporan_risikan_bkkm.csv", mime="text/csv", use_container_width=True)
     else:
         st.info("Tiada rekod amaran makanan ditemui.")
 
 # ==========================================
-# TAB 2: PEMANTAUAN PRODUK VIRAL (MEDSOS)
+# TAB 2: PEMANTAUAN PRODUK VIRAL
 # ==========================================
 with tab2:
-    st.subheader("📲 Risikan Makanan Viral")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📲 Risikan Makanan Viral E-Dagang")
     
     cat_filter = st.selectbox("Kategori Trend:", ["Semua Kategori", "Kopi / Minuman Kurus", "Snek & Gula-Gula Import", "Suplemen & Kesihatan"])
     
@@ -169,25 +258,26 @@ with tab2:
 # TAB 3: IMBASAN LABEL IMAGE (OCR AI)
 # ==========================================
 with tab3:
-    st.subheader("📷 Imbasan Teks Label (OCR)")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📷 Imbasan Teks Label & Ramuan (OCR)")
     
-    uploaded_file = st.file_uploader("Upload Gambar Label:", type=["png", "jpg", "jpeg"])
+    uploaded_file = st.file_uploader("Muat Naik Gambar Label Produk:", type=["png", "jpg", "jpeg"])
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Gambar Label", use_container_width=True)
+        st.image(image, caption="Gambar Label Diimbas", use_container_width=True)
         
-        with st.spinner("Mengekstrak teks..."):
+        with st.spinner("Pengecam OCR sedang mengekstrak teks ramuan..."):
             try:
                 extracted_text = pytesseract.image_to_string(image)
-                st.text_area("Teks Dikesan:", extracted_text, height=120)
+                st.text_area("Hasil Teks Dikesan:", extracted_text, height=120)
                 
                 risk_keywords = ["sibutramine", "sildenafil", "steroid", "rhodamine", "aflatoxin"]
                 found_risks = [word for word in risk_keywords if word.lower() in extracted_text.lower()]
                 
                 if found_risks:
-                    st.error(f"🚨 **AMARAN:** Bahan Berisiko: {', '.join(found_risks)}")
+                    st.error(f"🚨 **AMARAN:** Bahan Berisiko Dikesan: {', '.join(found_risks)}")
                 else:
                     st.success("✅ Tiada bahan berisiko utama dikesan.")
             except Exception:
-                st.info("Modul OCR memerlukan persekitaran Tesseract Engine.")
+                st.info("Modul OCR memerlukan enjin Tesseract dipasang.")
