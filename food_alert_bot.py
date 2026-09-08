@@ -1,25 +1,9 @@
-import os
 import requests
 import feedparser
 
-# Tetapan Telegram (Guna Environment Variables untuk keselamatan)
-TELEGRAM_TOKEN = os.getenv("8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s")
-TELEGRAM_CHAT_ID = os.getenv("-1004433036270")
-
-# CARA 2: Jika Secrets masih bermasalah, padam 2 baris di atas dan buang tanda '#' di 2 baris bawah ini:
-# TELEGRAM_TOKEN = "8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s"
-# TELEGRAM_CHAT_ID = "-1004433036270"
-
-# Senarai RSS Feed
-FEEDS = {
-    "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml",
-}
-
-# Kata kunci berisiko tinggi (Koma ditambah untuk elak SyntaxError)
-RISK_KEYWORDS = [
-    "aflatoxin", "salmonella", "listeria", "ethylene oxide", 
-    "undeclared", "allergen", "unregistered", "prohibited"
-]
+# Token & Chat ID dimasukkan terus secara hardcode
+TELEGRAM_TOKEN = "8975926079:AAE1XKNGQTHasdFKr1meRtwT_HDO2gp675s"
+TELEGRAM_CHAT_ID = "-1004433036270"
 
 def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -30,36 +14,25 @@ def send_telegram_alert(message):
         "disable_web_page_preview": True
     }
     res = requests.post(url, json=payload)
-    print("Status Telegram:", res.status_code, res.text)  # Untuk semak log di GitHub Actions
+    print("Status Hantar Telegram:", res.status_code, res.text)
 
 def check_food_alerts():
-    total_alerts_found = 0
+    # Hantar mesej ujian pertama terus ke Telegram
+    send_telegram_alert("🚨 *UJIAN INTEGRASI RISIKAN IMPORT*\n\nSistem OSINT Food Alert berjaya dihubungkan ke Group Telegram ini.")
+
+    # Semak RSS Feed US FDA
+    feed_url = "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml"
+    feed = feedparser.parse(feed_url)
     
-    for source_name, feed_url in FEEDS.items():
-        feed = feedparser.parse(feed_url)
-        entries = feed.entries[:3] if feed.entries else []
-        
-        for entry in entries:
-            total_alerts_found += 1
-            title = entry.title
-            link = entry.link
-            summary = getattr(entry, 'summary', 'Tiada ringkasan.')
-
-            is_high_risk = any(keyword.lower() in (title + summary).lower() for keyword in RISK_KEYWORDS)
-            risk_tag = "🚨 *ALERT BERISIKO TINGGI*" if is_high_risk else "ℹ️ *INFO ALERT IMPOR*"
-            
-            message = (
-                f"{risk_tag}\n\n"
-                f"*Sumber:* {source_name}\n"
-                f"*Tajuk:* {title}\n\n"
-                f"*Pautan:* [Buka Laporan]({link})\n\n"
-                f"📌 _Tindakan Risikan: Semak kemasukan berkaitan di FoSIM Import._"
+    if feed.entries:
+        for entry in feed.entries[:2]:
+            msg = (
+                f"ℹ️ *INFO ALERT IMPOR (US FDA)*\n\n"
+                f"*Tajuk:* {entry.title}\n"
+                f"*Pautan:* [Buka Laporan]({entry.link})\n\n"
+                f"📌 _Tindakan Risikan: Semak rekod pengimportan di FoSIM Import._"
             )
-            send_telegram_alert(message)
-
-    # Jika tiada isu baharu atau RSS kosong
-    if total_alerts_found == 0:
-        send_telegram_alert("✅ *STATUS RISIKAN:* Imbasan selesai. Tiada amaran makanan (Food Alert) baharu dikesan buat masa ini.")
+            send_telegram_alert(msg)
 
 if __name__ == "__main__":
     check_food_alerts()
