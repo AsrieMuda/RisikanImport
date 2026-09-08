@@ -5,12 +5,25 @@ import feedparser
 # Tetapan Muka Surat Aplikasi
 st.set_page_config(
     page_title="Pusat Risikan & Food Search Import PKKM",
-    page_icon="🔍",
+    page_icon="🇲🇾",
     layout="wide"
 )
 
-st.title("🛡️ Pusat Risikan Makanan & Food Search (Import)")
-st.caption("Aplikasi Pemantauan OSINT & Semakan Food Alert Antarabangsa untuk Cawangan Import PKKM")
+# HEADER RASMI KERAJAAN MALAYSIA / KKM
+st.markdown("""
+    <div style="display: flex; align-items: center; background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-bottom: 4px solid #003366; margin-bottom: 25px;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_Malaysia.svg" style="width: 110px; margin-right: 25px;">
+        <div>
+            <h4 style="margin:0; color: #003366; font-family: sans-serif; font-weight: bold; letter-spacing: 1px;">KEMENTERIAN KESIHATAN MALAYSIA</h4>
+            <h2 style="margin: 2px 0; color: #111; font-family: sans-serif; font-weight: 800;">PROGRAM KESELAMATAN DAN KUALITI MAKANAN</h2>
+            <h5 style="margin: 0; color: #555; font-weight: 600;">CAWANGAN IMPORT | UNIT RISIKAN DAN SIASATAN</h5>
+            <p style="margin-top: 6px; margin-bottom: 0; font-size: 13px; color: #666; line-height: 1.4;">
+                📍 Aras 4, Menara Prisma, No. 26, Jalan Persiaran Perdana, Presint 3, 62675 Putrajaya, Malaysia.<br>
+                💻 <b>Sistem OSINT & Food Search Import (SISTEM RISIKAN IMPORT)</b>
+            </p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 # Fungsi Ambil Data RSS Feed Antarabangsa
 @st.cache_data(ttl=1800)
@@ -35,7 +48,6 @@ def load_food_alerts():
         except Exception as e:
             st.error(f"Ralat menarik data dari {source}: {e}")
             
-    # Jika tiada data, bina DataFrame dengan nama lajur yang ditetapkan
     if not alert_list:
         return pd.DataFrame(columns=["Sumber", "Tajuk / Produk", "Tarikh", "Pautan Laporan", "Ringkasan"])
         
@@ -69,7 +81,6 @@ else:
 
 st.write(f"Menunjukkan **{len(filtered_df)}** rekod hasil carian:")
 
-# Paparkan jadual hanya jika DataFrame tidak kosong
 if not filtered_df.empty:
     st.dataframe(
         filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh', 'Pautan Laporan']],
