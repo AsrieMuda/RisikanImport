@@ -157,25 +157,63 @@ with tab1:
         st.info("Tiada rekod amaran makanan ditemui.")
 
 # ==========================================
-# TAB 2: PEMANTAUAN PRODUK VIRAL
+# TAB 2: PEMANTAUAN PRODUK VIRAL & OSINT
 # ==========================================
 with tab2:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("📲 Risikan Makanan Viral E-Dagang")
+    st.subheader("📲 Risikan Makanan Viral E-Dagang & Media Sosial")
     
     cat_filter = st.selectbox("Kategori Trend:", ["Semua Kategori", "Kopi / Minuman Kurus", "Snek & Gula-Gula Import", "Suplemen & Kesihatan"])
     
+    # Data Sampel Risikan Lengkap bersama Pautan & SOP
     viral_data = [
-        {"Kategori": "Kopi / Minuman Kurus", "Nama Produk": "Kopi Detox Slim Import", "Platform": "TikTok / Shopee", "Status Risk": "🚨 Berisiko Tinggi", "Nota": "Syak Sibutramine"},
-        {"Kategori": "Snek & Gula-Gula Import", "Nama Produk": "Candy Sour Chews", "Platform": "Facebook / TikTok", "Status Risk": "⚠️ Perlabelan", "Nota": "Tiada maklumat pengimport"},
-        {"Kategori": "Suplemen & Kesihatan", "Nama Produk": "Jelly Collagen Overclaim", "Platform": "Instagram", "Status Risk": "🚨 Overclaim", "Nota": "Klaim merawat penyakit"}
+        {
+            "Nama Produk": "Kopi Detox Slim Import",
+            "Platform": "TikTok / Shopee",
+            "Status Risk": "🚨 Berisiko Tinggi",
+            "Isu / Pelanggaran": "Syak Bahan Terlarang (Sibutramine) & Overclaim",
+            "Pautan Produk": "https://shopee.com.my",
+            "SOP Tindakan": "TUL di Pintu Masuk / Semak FoSIM"
+        },
+        {
+            "Nama Produk": "Candy Sour Chews",
+            "Platform": "Facebook / TikTok",
+            "Status Risk": "⚠️ Perlabelan",
+            "Isu / Pelanggaran": "Tiada Sebutan Bahasa Melayu/Inggeris & Pengimport Unregistered",
+            "Pautan Produk": "https://tiktok.com",
+            "SOP Tindakan": "Keluarkan Notis Penahanan / Saman Label"
+        },
+        {
+            "Nama Produk": "Jelly Collagen Overclaim",
+            "Platform": "Instagram",
+            "Status Risk": "🚨 Overclaim",
+            "Isu / Pelanggaran": "Klaim Merawat Kencing Manis/Darah Tinggi",
+            "Pautan Produk": "https://instagram.com",
+            "SOP Tindakan": "Aduan Take-Down SKMM / Tindakan Seksyen 17"
+        }
     ]
     df_viral = pd.DataFrame(viral_data)
     
     if cat_filter != "Semua Kategori":
-        df_viral = df_viral[df_viral['Kategori'] == cat_filter]
+        df_viral = df_viral[df_viral['Nama Produk'].str.contains(cat_filter, case=False, na=False)]
         
-    st.dataframe(df_viral[['Nama Produk', 'Platform', 'Status Risk']], use_container_width=True, hide_index=True)
+    st.dataframe(
+        df_viral,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Pautan Produk": st.column_config.LinkColumn("Pautan Risikan (Link)")
+        }
+    )
+
+    # PANDUAN PENGUMPULAN BUKTI & BONEKA (SOCK PUPPET)
+    with st.expander("🛡️ Panduan Risikan Senyap (Undercover OSINT) & Pengumpulan Bukti"):
+        st.markdown("""
+        * **1. Sembunyikan Alamat IP:** Pastikan VPN diaktifkan sebelum menekan pautan produk.
+        * **2. Simpan Bukti Digital:** Gunakan [Archive.ph](https://archive.ph) untuk menyimpan salinan asal halaman produk sebelum dipadam penjual.
+        * **3. Tangkapan Skrin:** Simpan gambar halaman penuh (*full-page screenshot*) bersama tarikh dan masa.
+        * **4. Akaun Risikan Khas:** Gunakan akaun *Sock Puppet* (bukan e-mel rasmi KKM) apabila melayari platform e-dagang.
+        """)
 
 # ==========================================
 # TAB 3: IMBASAN LABEL IMAGE (AUTO-OCR)
