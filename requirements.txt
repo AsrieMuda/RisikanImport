@@ -2,5 +2,5 @@ requests
 feedparser
 streamlit
 pandas
-pytesseract
 Pillow
+easyocr
