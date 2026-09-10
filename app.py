@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import feedparser
+import requests
 from PIL import Image
 
 # Tetapan Muka Surat
@@ -92,7 +93,29 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. NAVIGASI TAB (Mendefinisikan tab1, tab2, tab3 secara jelas)
+# FUNGSI INTEGRASI API OPEN FOOD FACTS (DISERAP DARI FOOD-SEARCH)
+def search_global_openfoodfacts(query_text):
+    try:
+        url = f"https://world.openfoodfacts.org/cgi/search.pl?search_terms={query_text}&search_simple=1&action=process&json=1&page_size=10"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            products = data.get('products', [])
+            result_list = []
+            for p in products:
+                result_list.append({
+                    "Nama Produk": p.get('product_name', 'Tiada Nama'),
+                    "Jenama / Pengilang": p.get('brands', 'Tiada Jenama'),
+                    "Negara Asal": p.get('countries', 'Tiada Maklumat'),
+                    "Barcode (EAN)": p.get('code', '-'),
+                    "Ramuan Detected": p.get('ingredients_text', 'Tiada Teks Ramuan')
+                })
+            return pd.DataFrame(result_list)
+    except Exception as e:
+        print(f"Ralat API: {e}")
+    return pd.DataFrame()
+
+# 3. NAVIGASI TAB
 tab1, tab2, tab3 = st.tabs([
     "🏠 UTAMA (Food Search)", 
     "📲 RISIKAN VIRAL", 
@@ -130,31 +153,52 @@ with tab1:
     df_alerts = load_food_alerts()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.metric("Jumlah Rekod Alert Aktif", len(df_alerts))
-
-    st.subheader("🔍 Carian Risikan Makanan Import")
     
-    sumber_list = ["Semua Sumber"] + list(df_alerts['Sumber'].unique()) if not df_alerts.empty else ["Semua Sumber"]
-    selected_source = st.selectbox("Tapis Portal Sumber:", sumber_list)
-    query = st.text_input("Kata Kunci Carian (cth: Salmonella, Kopi, Brand):", "")
+    # PILIHAN MOD CARIAN
+    search_mode = st.radio(
+        "Mod Carian Risikan:",
+        ["🚨 Rekod Alert Antarabangsa (FDA/RASFF)", "📦 Carian Barcode & Produk Global (OpenFoodFacts)"],
+        horizontal=True
+    )
 
-    filtered_df = df_alerts.copy()
-    if selected_source != "Semua Sumber":
-        filtered_df = filtered_df[filtered_df['Sumber'] == selected_source]
-    if query and not filtered_df.empty:
-        filtered_df = filtered_df[
-            filtered_df['Tajuk / Produk'].str.contains(query, case=False, na=False) |
-            filtered_df['Ringkasan'].str.contains(query, case=False, na=False)
-        ]
+    if "Alert Antarabangsa" in search_mode:
+        st.metric("Jumlah Rekod Alert Aktif", len(df_alerts))
+        st.subheader("🔍 Carian Amaran Makanan Import")
+        
+        sumber_list = ["Semua Sumber"] + list(df_alerts['Sumber'].unique()) if not df_alerts.empty else ["Semua Sumber"]
+        selected_source = st.selectbox("Tapis Portal Sumber:", sumber_list)
+        query = st.text_input("Kata Kunci Carian (cth: Salmonella, Kopi, Brand):", "")
 
-    st.caption(f"Menunjukkan **{len(filtered_df)}** rekod maklumat dikesan:")
+        filtered_df = df_alerts.copy()
+        if selected_source != "Semua Sumber":
+            filtered_df = filtered_df[filtered_df['Sumber'] == selected_source]
+        if query and not filtered_df.empty:
+            filtered_df = filtered_df[
+                filtered_df['Tajuk / Produk'].str.contains(query, case=False, na=False) |
+                filtered_df['Ringkasan'].str.contains(query, case=False, na=False)
+            ]
 
-    if not filtered_df.empty:
-        st.dataframe(filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh']], use_container_width=True, hide_index=True)
-        csv_data = filtered_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📄 Muat Turun Laporan Risikan (CSV)", data=csv_data, file_name="laporan_risikan_bkkm.csv", mime="text/csv", use_container_width=True)
+        st.caption(f"Menunjukkan **{len(filtered_df)}** rekod maklumat dikesan:")
+
+        if not filtered_df.empty:
+            st.dataframe(filtered_df[['Sumber', 'Tajuk / Produk', 'Tarikh']], use_container_width=True, hide_index=True)
+            csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+            st.download_button("📄 Muat Turun Laporan Risikan (CSV)", data=csv_data, file_name="laporan_risikan_bkkm.csv", mime="text/csv", use_container_width=True)
+        else:
+            st.info("Tiada rekod amaran makanan ditemui.")
+
     else:
-        st.info("Tiada rekod amaran makanan ditemui.")
+        st.subheader("📦 Carian Barcode & Pangkalan Data Produk Global")
+        global_query = st.text_input("Masukkan Nombor Barcode atau Nama Produk Global (cth: 8992741911110 / Samyang):", "")
+        
+        if global_query:
+            with st.spinner("Menarik data produk dari Open Food Facts..."):
+                df_global = search_global_openfoodfacts(global_query)
+                if not df_global.empty:
+                    st.success(f"Dikesan **{len(df_global)}** rekod produk global:")
+                    st.dataframe(df_global, use_container_width=True, hide_index=True)
+                else:
+                    st.warning("Tiada produk ditemui untuk barcode/nama tersebut.")
 
 # ==========================================
 # TAB 2: PEMANTAUAN PRODUK VIRAL & OSINT
@@ -165,7 +209,6 @@ with tab2:
     
     cat_filter = st.selectbox("Kategori Trend:", ["Semua Kategori", "Kopi / Minuman Kurus", "Snek & Gula-Gula Import", "Suplemen & Kesihatan"])
     
-    # Data Sampel Risikan Lengkap bersama Pautan & SOP
     viral_data = [
         {
             "Nama Produk": "Kopi Detox Slim Import",
@@ -206,7 +249,6 @@ with tab2:
         }
     )
 
-    # PANDUAN PENGUMPULAN BUKTI & BONEKA (SOCK PUPPET)
     with st.expander("🛡️ Panduan Risikan Senyap (Undercover OSINT) & Pengumpulan Bukti"):
         st.markdown("""
         * **1. Sembunyikan Alamat IP:** Pastikan VPN diaktifkan sebelum menekan pautan produk.
