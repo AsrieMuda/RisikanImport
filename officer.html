@@ -2,7 +2,46 @@
 <html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Officer Workspace · Risikan Import</title>
 <style>
 :root{font-family:Inter,system-ui,Arial,sans-serif;color:#e9f3fb;background:#09192c}*{box-sizing:border-box}body{margin:0}header{background:#102d4a;border-bottom:1px solid #31536c}.wrap{max-width:1050px;padding:22px;margin:auto}header .wrap{display:flex;align-items:center;justify-content:space-between;gap:18px}h1{font-size:clamp(24px,4vw,38px);margin:10px 0}h2{font-size:18px}.sub{color:#a8c3d8}.panel{background:#12283f;border:1px solid #2c4b65;border-radius:15px;padding:22px;margin:20px 0}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}.alert{background:#102235;border:1px solid #38546a;border-radius:12px;padding:16px}.alert h3{font-size:16px;line-height:1.45}.alert p{color:#a9c1d3;font-size:13px}.badge{font-size:11px;padding:5px 9px;border-radius:99px;background:#254969;color:#b2e1ff}button{cursor:pointer;background:#176ca9;color:white;border:0;border-radius:9px;padding:10px 14px;font:inherit}button:disabled{opacity:.45;cursor:not-allowed}input,textarea{background:#071a2e;border:1px solid #47667b;border-radius:8px;color:white;padding:11px;font:inherit;width:100%}label{display:block;color:#b5cadb;font-size:13px;margin-bottom:6px}.hidden{display:none}.msg{padding:12px;border-radius:8px;background:#193a53;color:#d4ebff;margin-top:13px;white-space:pre-line}small{color:#94b0c4}a{color:#91d6ff}footer{color:#86a3b8;font-size:12px;padding:25px 0}
-</style></head>
+/* RISIKAN IMPORT — ALERT INTELLIGENCE */
+
+.alert:has(.badge.high) {
+  border: 1px solid #e53935;
+  background: linear-gradient(145deg, #301923, #14283e);
+  box-shadow: 0 0 14px rgba(229, 57, 53, 0.18);
+}
+
+.badge.high {
+  background: #c62828;
+  color: #ffffff;
+  font-weight: 800;
+  animation: alertPulse 1.8s ease-in-out infinite;
+}
+
+.badge.medium {
+  background: #e88a16;
+  color: #101820;
+  font-weight: 800;
+}
+
+.badge.low {
+  background: #176ca9;
+  color: #ffffff;
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(244, 67, 54, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge.high {
+    animation: none;
+  }
+}</style></head>
 <body><header><div class="wrap"><div><strong>🛡️ RISIKAN IMPORT</strong><div class="sub">Officer Workspace · @moh.gov.my</div></div><span class="badge">PROTOTYPE V2</span></div></header>
 <main class="wrap"><h1>Food Alert Triage & Action</h1><p class="sub">Akses pegawai yang dibenarkan sahaja. Rekod penguatkuasaan tidak disimpan pada GitHub Pages.</p>
 <section class="panel" id="signin"><h2>Login Google Workspace</h2><p class="sub">Pilih akaun kerja @moh.gov.my. Selepas identiti disahkan, sistem akan menyemak senarai pegawai yang dibenarkan.</p><div id="gButton"></div><div id="loginMessage" class="msg hidden" role="alert"></div></section>
@@ -24,7 +63,7 @@ async function api(action,payload={}){
   const data=await result.json();if(!result.ok||!data.ok)throw Error(data.error||'Permintaan gagal');return data.data;
 }
 async function onGoogleLogin(response){idToken=response.credential;el('loginMessage').classList.add('hidden');try{const user=await api('whoami');el('welcome').textContent='Selamat datang, '+(user.name||user.email);el('role').textContent=user.email+' · '+user.role;el('signin').classList.add('hidden');el('workspace').classList.remove('hidden');await refresh()}catch(error){idToken='';msg('loginMessage','Akses tidak dibenarkan: '+error.message)}}
-async function refresh(){try{const [alerts,cases]=await Promise.all([api('listAlerts'),api('myCases')]);const grid=el('alerts');grid.replaceChildren();if(!alerts.length)grid.append(node('p','Belum ada alert dalam database V2. Bot Telegram lama belum dihubungkan.','sub'));alerts.forEach(a=>{const card=node('article','','alert');card.append(node('span',a.RISK||'INFO','badge'),node('h3',a.TITLE),node('p',(a.SOURCE||'')+' · '+(a.HAZARD||'Semak sumber')));const url=(()=>{try{const u=new URL(a.SOURCE_URL);return ['https:','http:'].includes(u.protocol)?u.href:null}catch{return null}})();if(url){const link=node('a','Buka sumber ↗');link.href=url;link.target='_blank';link.rel='noopener noreferrer';card.append(link)}const button=node('button','Pick Alert');button.style.marginTop='14px';button.onclick=async()=>{const reason=window.prompt('Sebab mengambil alert ini untuk semakan:');if(!reason)return;button.disabled=true;try{const result=await api('pickAlert',{alertId:a.ALERT_ID,reason});msg('systemMessage','Kes '+result.caseId+' berjaya dibuka.');await refresh()}catch(error){msg('systemMessage',error.message)}finally{button.disabled=false}};card.append(node('div',''),button);grid.append(card)});const list=el('cases');list.replaceChildren();if(!cases.length)list.append(node('p','Tiada kes aktif yang diambil oleh anda.','sub'));cases.forEach(c=>{const item=node('article','','alert');item.append(node('strong',c.CASE_ID),node('p',c.STATUS+' · '+c.ALERT_ID),node('p',c.REASON||''));list.append(item)})}catch(error){msg('systemMessage',error.message)}}
+async function refresh(){try{const [alerts,cases]=await Promise.all([api('listAlerts'),api('myCases')]);const grid=el('alerts');grid.replaceChildren();if(!alerts.length)grid.append(node('p','Belum ada alert dalam database V2. Bot Telegram lama belum dihubungkan.','sub'));alerts.forEach(a=>{const card=node('article','','alert');node('span',a.RISK||'INFO','badge '+String(a.RISK||'INFO').toLowerCase()),node('h3',a.TITLE),node('p',(a.SOURCE||'')+' · '+(a.HAZARD||'Semak sumber')));const url=(()=>{try{const u=new URL(a.SOURCE_URL);return ['https:','http:'].includes(u.protocol)?u.href:null}catch{return null}})();if(url){const link=node('a','Buka sumber ↗');link.href=url;link.target='_blank';link.rel='noopener noreferrer';card.append(link)}const button=node('button','Pick Alert');button.style.marginTop='14px';button.onclick=async()=>{const reason=window.prompt('Sebab mengambil alert ini untuk semakan:');if(!reason)return;button.disabled=true;try{const result=await api('pickAlert',{alertId:a.ALERT_ID,reason});msg('systemMessage','Kes '+result.caseId+' berjaya dibuka.');await refresh()}catch(error){msg('systemMessage',error.message)}finally{button.disabled=false}};card.append(node('div',''),button);grid.append(card)});const list=el('cases');list.replaceChildren();if(!cases.length)list.append(node('p','Tiada kes aktif yang diambil oleh anda.','sub'));cases.forEach(c=>{const item=node('article','','alert');item.append(node('strong',c.CASE_ID),node('p',c.STATUS+' · '+c.ALERT_ID),node('p',c.REASON||''));list.append(item)})}catch(error){msg('systemMessage',error.message)}}
 el('reload').onclick=refresh;el('logout').onclick=()=>{idToken='';el('workspace').classList.add('hidden');el('signin').classList.remove('hidden');google.accounts.id.disableAutoSelect()};
 window.onload=()=>{if(GOOGLE_CLIENT_ID.startsWith('REPLACE_')||GATEWAY_URL.includes('REPLACE_')){msg('loginMessage','Konfigurasi belum lengkap: tetapkan GOOGLE_CLIENT_ID dan GATEWAY_URL dalam officer.html.');return}google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:onGoogleLogin,hd:'moh.gov.my',auto_select:false});google.accounts.id.renderButton(el('gButton'),{theme:'outline',size:'large',text:'signin_with'})};
 </script></body></html>
