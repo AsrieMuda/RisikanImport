@@ -2,8 +2,8 @@ import os
 import requests
 import feedparser
 
-TELEGRAM_BOT_TOKEN = "8975926079:AAHkr7hL0mRr04KPaqWCPHykIjbncV2Kr1Q"
-TELEGRAM_CHAT_ID = "-1004433036270"
+TELEGRAM_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 FEEDS = {
     "US FDA Food Recalls": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-recalls/rss.xml",
