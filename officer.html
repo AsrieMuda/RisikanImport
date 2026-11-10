@@ -63,7 +63,21 @@ async function api(action,payload={}){
   const data=await result.json();if(!result.ok||!data.ok)throw Error(data.error||'Permintaan gagal');return data.data;
 }
 async function onGoogleLogin(response){idToken=response.credential;el('loginMessage').classList.add('hidden');try{const user=await api('whoami');el('welcome').textContent='Selamat datang, '+(user.name||user.email);el('role').textContent=user.email+' · '+user.role;el('signin').classList.add('hidden');el('workspace').classList.remove('hidden');await refresh()}catch(error){idToken='';msg('loginMessage','Akses tidak dibenarkan: '+error.message)}}
-async function refresh(){try{const [alerts,cases]=await Promise.all([api('listAlerts'),api('myCases')]);const grid=el('alerts');grid.replaceChildren();if(!alerts.length)grid.append(node('p','Belum ada alert dalam database V2. Bot Telegram lama belum dihubungkan.','sub'));alerts.forEach(a=>{const card=node('article','','alert');node('span',a.RISK||'INFO','badge '+String(a.RISK||'INFO').toLowerCase()),node('h3',a.TITLE),node('p',(a.SOURCE||'')+' · '+(a.HAZARD||'Semak sumber')));const url=(()=>{try{const u=new URL(a.SOURCE_URL);return ['https:','http:'].includes(u.protocol)?u.href:null}catch{return null}})();if(url){const link=node('a','Buka sumber ↗');link.href=url;link.target='_blank';link.rel='noopener noreferrer';card.append(link)}const button=node('button','Pick Alert');button.style.marginTop='14px';button.onclick=async()=>{const reason=window.prompt('Sebab mengambil alert ini untuk semakan:');if(!reason)return;button.disabled=true;try{const result=await api('pickAlert',{alertId:a.ALERT_ID,reason});msg('systemMessage','Kes '+result.caseId+' berjaya dibuka.');await refresh()}catch(error){msg('systemMessage',error.message)}finally{button.disabled=false}};card.append(node('div',''),button);grid.append(card)});const list=el('cases');list.replaceChildren();if(!cases.length)list.append(node('p','Tiada kes aktif yang diambil oleh anda.','sub'));cases.forEach(c=>{const item=node('article','','alert');item.append(node('strong',c.CASE_ID),node('p',c.STATUS+' · '+c.ALERT_ID),node('p',c.REASON||''));list.append(item)})}catch(error){msg('systemMessage',error.message)}}
+async function refresh(){try{const [alerts,cases]=await Promise.all([api('listAlerts'),api('myCases')]);const grid=el('alerts');grid.replaceChildren();if(!alerts.length)grid.append(node('p','Belum ada alert dalam database V2. Bot Telegram lama belum dihubungkan.','sub'));alerts.forEach(a=>{alerts.forEach(a=>{
+  const card = node('article', '', 'alert');
+
+  card.append(
+    node('span', a.RISK || 'INFO',
+      'badge ' + String(a.RISK || 'INFO').toLowerCase()
+    ),
+    node('h3', a.TITLE),
+    node('p',
+      (a.SOURCE || '') + ' · ' +
+      (a.HAZARD || 'Semak sumber')
+    )
+  );
+
+const url=(()=>{try{const u=new URL(a.SOURCE_URL);return ['https:','http:'].includes(u.protocol)?u.href:null}catch{return null}})();if(url){const link=node('a','Buka sumber ↗');link.href=url;link.target='_blank';link.rel='noopener noreferrer';card.append(link)}const button=node('button','Pick Alert');button.style.marginTop='14px';button.onclick=async()=>{const reason=window.prompt('Sebab mengambil alert ini untuk semakan:');if(!reason)return;button.disabled=true;try{const result=await api('pickAlert',{alertId:a.ALERT_ID,reason});msg('systemMessage','Kes '+result.caseId+' berjaya dibuka.');await refresh()}catch(error){msg('systemMessage',error.message)}finally{button.disabled=false}};card.append(node('div',''),button);grid.append(card)});const list=el('cases');list.replaceChildren();if(!cases.length)list.append(node('p','Tiada kes aktif yang diambil oleh anda.','sub'));cases.forEach(c=>{const item=node('article','','alert');item.append(node('strong',c.CASE_ID),node('p',c.STATUS+' · '+c.ALERT_ID),node('p',c.REASON||''));list.append(item)})}catch(error){msg('systemMessage',error.message)}}
 el('reload').onclick=refresh;el('logout').onclick=()=>{idToken='';el('workspace').classList.add('hidden');el('signin').classList.remove('hidden');google.accounts.id.disableAutoSelect()};
 window.onload=()=>{if(GOOGLE_CLIENT_ID.startsWith('REPLACE_')||GATEWAY_URL.includes('REPLACE_')){msg('loginMessage','Konfigurasi belum lengkap: tetapkan GOOGLE_CLIENT_ID dan GATEWAY_URL dalam officer.html.');return}google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:onGoogleLogin,hd:'moh.gov.my',auto_select:false});google.accounts.id.renderButton(el('gButton'),{theme:'outline',size:'large',text:'signin_with'})};
 </script></body></html>
