@@ -63,7 +63,7 @@ async function api(action,payload={}){
   const data=await result.json();if(!result.ok||!data.ok)throw Error(data.error||'Permintaan gagal');return data.data;
 }
 async function onGoogleLogin(response){idToken=response.credential;el('loginMessage').classList.add('hidden');try{const user=await api('whoami');el('welcome').textContent='Selamat datang, '+(user.name||user.email);el('role').textContent=user.email+' · '+user.role;el('signin').classList.add('hidden');el('workspace').classList.remove('hidden');await refresh()}catch(error){idToken='';msg('loginMessage','Akses tidak dibenarkan: '+error.message)}}
-async function refresh(){try{const [alerts,cases]=await Promise.all([api('listAlerts'),api('myCases')]);const grid=el('alerts');grid.replaceChildren();if(!alerts.length)grid.append(node('p','Belum ada alert dalam database V2. Bot Telegram lama belum dihubungkan.','sub'));alerts.forEach(a=>{alerts.forEach(a=>{
+async function refresh(){try{const [alerts,cases]=await Promise.all([api('listAlerts'),api('myCases')]);const grid=el('alerts');grid.replaceChildren();if(!alerts.length)grid.append(node('p','Belum ada alert dalam database V2. Bot Telegram lama belum dihubungkan.','sub'));alerts.forEach(a=>{
   const card = node('article', '', 'alert');
 
   card.append(
